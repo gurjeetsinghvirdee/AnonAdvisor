@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { databases, client, QUESTIONS_COLLECTION_ID, ANSWERS_COLLECTION_ID } from './appwrite';
+import { databases, client } from './appwrite';
+import { Container, CssBaseline, AppBar, Toolbar, Typography, Box, Button } from '@mui/material';
 import QuestionForm from './components/QuestionForm';
 import QuestionList from './components/QuestionList';
 import AnswerList from './components/AnswerList';
@@ -8,7 +9,6 @@ interface Question {
   $id: string;
   questionText: string;
   timestamp: string;
-  // answers?: Answer[]; // Optional answers array
 }
 
 interface Answer {
@@ -18,7 +18,7 @@ interface Answer {
   timestamp: string;
 }
 
-const App: React.FC = () => {
+const App = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Answer[]>([]);
 
@@ -26,12 +26,12 @@ const App: React.FC = () => {
     getQuestions();
     getAnswers();
 
-    const unsubscribeQuestions = client.subscribe('collections.${QUESTIONS_COLLECTION_ID}.documents', (response) => {
+    const unsubscribeQuestions = client.subscribe(`collections.${process.env.REACT_APP_APPWRITE_QUESTIONS_COLLECTION_ID}.documents`, (response) => {
       console.log('New question added:', response);
       getQuestions();
     });
 
-    const unsubscribeAnswers = client.subscribe('collections.${ANSWERS_COLLECTION_ID}.documents', (response) => {
+    const unsubscribeAnswers = client.subscribe(`collections.${process.env.REACT_APP_APPWRITE_ANSWERS_COLLECTION_ID}.documents`, (response) => {
       console.log('New answer added:', response);
       getAnswers();
     });
@@ -44,8 +44,8 @@ const App: React.FC = () => {
 
   const getQuestions = async () => {
     const response = await databases.listDocuments(
-      process.env.APPWRITE_DATABASE_ID!, 
-      process.env.QUESTIONS_COLLECTION_ID!
+      process.env.REACT_APP_APPWRITE_DATABASE_ID!,
+      process.env.REACT_APP_APPWRITE_QUESTIONS_COLLECTION_ID!
     );
     const questions = response.documents.map((doc) => ({
       $id: doc.$id,
@@ -57,8 +57,8 @@ const App: React.FC = () => {
 
   const getAnswers = async () => {
     const response = await databases.listDocuments(
-      process.env.APPWRITE_DATABASE_ID!,
-      process.env.ANSWERS_COLLECTION_ID!
+      process.env.REACT_APP_APPWRITE_DATABASE_ID!,
+      process.env.REACT_APP_APPWRITE_ANSWERS_COLLECTION_ID!
     );
     const answers = response.documents.map((doc) => ({
       $id: doc.$id,
@@ -71,8 +71,8 @@ const App: React.FC = () => {
 
   const postQuestion = async (questionText: string) => {
     await databases.createDocument(
-      process.env.APPWRITE_DATABASE_ID!,
-      process.env.QUESTIONS_COLLECTION_ID!,
+      process.env.REACT_APP_APPWRITE_DATABASE_ID!,
+      process.env.REACT_APP_APPWRITE_QUESTIONS_COLLECTION_ID!,
       'unique()',
       { questionText, timestamp: new Date().toISOString() }
     );
@@ -81,8 +81,8 @@ const App: React.FC = () => {
 
   const postAnswer = async (questionID: string, answerText: string) => {
     await databases.createDocument(
-      process.env.APPWRITE_DATABASE_ID!,
-      process.env.ANSWERS_COLLECTION_ID!,
+      process.env.REACT_APP_APPWRITE_DATABASE_ID!,
+      process.env.REACT_APP_APPWRITE_ANSWERS_COLLECTION_ID!,
       'unique()',
       { questionID, answerText, timestamp: new Date().toISOString() }
     );
@@ -90,13 +90,28 @@ const App: React.FC = () => {
   };
 
   return (
-    <div>
-      <h1>AnonAdvisor</h1>
-      <QuestionForm postQuestion={postQuestion} />
-      <QuestionList questions={questions} postAnswer={postAnswer} />
-      <h2>Answers</h2>
-      <AnswerList answers={answers} />
-    </div>
+    <React.Fragment>
+      <CssBaseline />
+      <AppBar position="static">
+        <Toolbar>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            AnonAdvisor
+          </Typography>
+        </Toolbar>
+      </AppBar>
+      <Container>
+        <Box my={4}>
+          <QuestionForm postQuestion={postQuestion} />
+          <QuestionList questions={questions} postAnswer={postAnswer} />
+          <Box my={2}>
+            <Typography variant="h5" component="div">
+              Answers
+            </Typography>
+            <AnswerList answers={answers} />
+          </Box>
+        </Box>
+      </Container>
+    </React.Fragment>
   );
 };
 

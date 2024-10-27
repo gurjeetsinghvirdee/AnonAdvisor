@@ -3,13 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@chakra-ui/react": "^3.0.1",
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
+    "@mui/material": "^6.1.5",
     "ajv": "^8.17.1",
     "ajv-keywords": "^5.1.0",
     "appwrite": "^16.0.2",
-    "framer-motion": "^11.11.10",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-scripts": "^5.0.1"
