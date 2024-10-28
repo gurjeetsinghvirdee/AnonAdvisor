@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { databases, client } from './appwrite';
-import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
-import { SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
+import { BrowserRouter as Router, Route, Routes, useNavigate } from 'react-router-dom';
+import { SignedIn, SignedOut, UserButton, SignUpButton } from '@clerk/clerk-react';
 import { FaQuestionCircle, FaUserPlus } from 'react-icons/fa';
+import Home from './Home';
+import QuestionsPanel from './QuestionsPanel';
 import QuestionForm from './components/QuestionForm';
 import QuestionList from './components/QuestionList';
 import AnswerList from './components/AnswerList';
@@ -23,6 +25,7 @@ interface Answers {
 const App: React.FC = () => {
   const [questions, setQuestions] = useState<Questions[]>([]);
   const [answers, setAnswers] = useState<Answers[]>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     getQuestions();
@@ -65,23 +68,35 @@ const App: React.FC = () => {
   };
 
   const postQuestion = async (questionText: string) => {
-    await databases.createDocument(
-      import.meta.env.VITE_APP_APPWRITE_DATABASE_ID!,
-      import.meta.env.VITE_APP_APPWRITE_QUESTIONS_COLLECTION_ID!,
-      'unique()',
-      { questionText, timestamp: new Date().toISOString() }
-    );
-    getQuestions();
+    try {
+      const documentID = 'unique()';
+      await databases.createDocument(
+        import.meta.env.VITE_APP_APPWRITE_DATABASE_ID!,
+        import.meta.env.VITE_APP_APPWRITE_QUESTIONS_COLLECTION_ID!,
+        documentID,
+        { questionText, timeStamp: new Date().toISOString() }
+      );
+      getQuestions();
+      navigate('/questions');
+    } catch (error) {
+      console.error('Error creating question:', error);
+    }
   };
 
   const postAnswer = async (questionID: string, answerText: string) => {
-    await databases.createDocument(
-      import.meta.env.VITE_APP_APPWRITE_DATABASE_ID!,
-      import.meta.env.VITE_APP_APPWRITE_ANSWERS_COLLECTION_ID!,
-      'unique()',
-      { questionID, answerText, timestamp: new Date().toISOString() }
-    );
-    getAnswers();
+    try {
+      const documentID = 'unique()';
+      const answerID = 'unique()';
+      await databases.createDocument(
+        import.meta.env.VITE_APP_APPWRITE_DATABASE_ID!,
+        import.meta.env.VITE_APP_APPWRITE_ANSWERS_COLLECTION_ID!,
+        documentID,
+        { answerID, questionID, answerText, timeStamp: new Date().toISOString() }
+      );
+      getAnswers();
+    } catch (error) {
+      console.error('Error creating answer:', error);
+    }
   };
 
   return (
@@ -97,53 +112,18 @@ const App: React.FC = () => {
               <UserButton afterSignOutUrl="/" />
             </SignedIn>
             <SignedOut>
-              <Link to="/sign-up" className="text-white text-lg flex items-center cursor-pointer">
-                <FaUserPlus className="mr-2" />
-                Sign Up
-              </Link>
+              <SignUpButton mode="modal">
+                <button className="text-white text-lg flex items-center cursor-pointer">
+                  <FaUserPlus className="mr-2" />
+                  Sign Up
+                </button>
+              </SignUpButton>
             </SignedOut>
           </div>
         </nav>
         <Routes>
-          <Route
-            path="/"
-            element={
-              <div className="container mx-auto p-4 flex-grow">
-                <div className="my-4 flex flex-col items-center">
-                  <SignedOut>
-                    <div className="text-center w-full max-w-2xl">
-                      <h2 className="text-2xl font-semibold text-white">Welcome to AnonAdvisor</h2>
-                      <p className="text-white">Ask a question anonymously or check out recent answers!</p>
-                      <div className="w-full mt-4 p-4 bg-white rounded shadow-md flex justify-between items-end relative">
-                        <QuestionForm postQuestion={postQuestion} />
-                      </div>
-                      <div className="mt-8 w-full">
-                        <h5 className="text-xl font-semibold text-white">Recent Answers</h5>
-                        <div className="flex flex-col-reverse">
-                          <AnswerList answers={answers} />
-                        </div>
-                      </div>
-                    </div>
-                  </SignedOut>
-                  <SignedIn>
-                    <div className="w-full max-w-2xl mt-4 p-4 bg-white rounded shadow-md flex justify-between items-end relative">
-                      <QuestionForm postQuestion={postQuestion} />
-                      <button
-                        className="ml-4 bg-purple-500 text-white py-2 px-4 rounded hover:bg-purple-600"
-                      >
-                        Post
-                      </button>
-                    </div>
-                    <div className="my-8 w-full">
-                      <QuestionList questions={questions} postAnswer={postAnswer} />
-                      <h5 className="text-xl font-semibold text-white mt-4">Answers</h5>
-                      <AnswerList answers={answers} />
-                    </div>
-                  </SignedIn>
-                </div>
-              </div>
-            }
-          />
+          <Route path="/" element={<Home postQuestion={postQuestion} questions={questions} />} />
+          <Route path="/questions" element={<QuestionsPanel questions={questions} postAnswer={postAnswer} />} />
         </Routes>
         <footer className="bg-gray-800 text-white p-4 text-center mt-auto">
           Made with ❤️ using Vite + Appwrite
