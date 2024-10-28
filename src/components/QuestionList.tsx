@@ -1,8 +1,9 @@
 import React from 'react';
 import QuestionItem from './QuestionItem';
+import { Questions } from '../types';
 
 interface QuestionListProps {
-    questions: Question[];
+    questions: Questions[];
     postAnswer: (questionID: string, answerText: string) => void;
 }
 

@@ -1,7 +1,8 @@
 import React from 'react';
+import { Questions } from '../types';
 
 interface QuestionItemProps {
-    question: Question;
+    question: Questions;
     postAnswer: (questionID: string, answerText: string) => void;
 }
 

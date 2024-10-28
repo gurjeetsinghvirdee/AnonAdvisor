@@ -1,7 +1,8 @@
 import React from 'react';
+import { Answers } from '../types';
 
 interface AnswerListProps {
-    answers: Answer[];
+    answers: Answers[];
 }
 
 const AnswerList: React.FC<AnswerListProps> = ({ answers }) => {

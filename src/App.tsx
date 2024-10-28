@@ -1,41 +1,38 @@
 import React, { useEffect, useState } from 'react';
 import { databases, client } from './appwrite';
-import { Container, CssBaseline, AppBar, Toolbar, Typography, Box, Button } from '@mui/material';
+import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
+import { SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
+import { FaQuestionCircle, FaUserPlus } from 'react-icons/fa';
 import QuestionForm from './components/QuestionForm';
 import QuestionList from './components/QuestionList';
 import AnswerList from './components/AnswerList';
 
-interface Question {
+interface Questions {
   $id: string;
   questionText: string;
   timestamp: string;
 }
 
-interface Answer {
+interface Answers {
   $id: string;
   questionID: string;
   answerText: string;
   timestamp: string;
 }
 
-const App = () => {
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [answers, setAnswers] = useState<Answer[]>([]);
+const App: React.FC = () => {
+  const [questions, setQuestions] = useState<Questions[]>([]);
+  const [answers, setAnswers] = useState<Answers[]>([]);
 
   useEffect(() => {
     getQuestions();
     getAnswers();
-
-    const unsubscribeQuestions = client.subscribe(`collections.${process.env.REACT_APP_APPWRITE_QUESTIONS_COLLECTION_ID}.documents`, (response) => {
-      console.log('New question added:', response);
+    const unsubscribeQuestions = client.subscribe(`collections.${import.meta.env.VITE_APP_APPWRITE_QUESTIONS_COLLECTION_ID}.documents`, () => {
       getQuestions();
     });
-
-    const unsubscribeAnswers = client.subscribe(`collections.${process.env.REACT_APP_APPWRITE_ANSWERS_COLLECTION_ID}.documents`, (response) => {
-      console.log('New answer added:', response);
+    const unsubscribeAnswers = client.subscribe(`collections.${import.meta.env.VITE_APP_APPWRITE_ANSWERS_COLLECTION_ID}.documents`, () => {
       getAnswers();
     });
-
     return () => {
       unsubscribeQuestions();
       unsubscribeAnswers();
@@ -44,35 +41,33 @@ const App = () => {
 
   const getQuestions = async () => {
     const response = await databases.listDocuments(
-      process.env.REACT_APP_APPWRITE_DATABASE_ID!,
-      process.env.REACT_APP_APPWRITE_QUESTIONS_COLLECTION_ID!
+      import.meta.env.VITE_APP_APPWRITE_DATABASE_ID!,
+      import.meta.env.VITE_APP_APPWRITE_QUESTIONS_COLLECTION_ID!
     );
-    const questions = response.documents.map((doc) => ({
+    setQuestions(response.documents.map((doc) => ({
       $id: doc.$id,
       questionText: doc.questionText,
       timestamp: doc.timestamp,
-    }));
-    setQuestions(questions);
+    })));
   };
 
   const getAnswers = async () => {
     const response = await databases.listDocuments(
-      process.env.REACT_APP_APPWRITE_DATABASE_ID!,
-      process.env.REACT_APP_APPWRITE_ANSWERS_COLLECTION_ID!
+      import.meta.env.VITE_APP_APPWRITE_DATABASE_ID!,
+      import.meta.env.VITE_APP_APPWRITE_ANSWERS_COLLECTION_ID!
     );
-    const answers = response.documents.map((doc) => ({
+    setAnswers(response.documents.map((doc) => ({
       $id: doc.$id,
       questionID: doc.questionID,
       answerText: doc.answerText,
       timestamp: doc.timestamp,
-    }));
-    setAnswers(answers);
+    })));
   };
 
   const postQuestion = async (questionText: string) => {
     await databases.createDocument(
-      process.env.REACT_APP_APPWRITE_DATABASE_ID!,
-      process.env.REACT_APP_APPWRITE_QUESTIONS_COLLECTION_ID!,
+      import.meta.env.VITE_APP_APPWRITE_DATABASE_ID!,
+      import.meta.env.VITE_APP_APPWRITE_QUESTIONS_COLLECTION_ID!,
       'unique()',
       { questionText, timestamp: new Date().toISOString() }
     );
@@ -81,8 +76,8 @@ const App = () => {
 
   const postAnswer = async (questionID: string, answerText: string) => {
     await databases.createDocument(
-      process.env.REACT_APP_APPWRITE_DATABASE_ID!,
-      process.env.REACT_APP_APPWRITE_ANSWERS_COLLECTION_ID!,
+      import.meta.env.VITE_APP_APPWRITE_DATABASE_ID!,
+      import.meta.env.VITE_APP_APPWRITE_ANSWERS_COLLECTION_ID!,
       'unique()',
       { questionID, answerText, timestamp: new Date().toISOString() }
     );
@@ -90,28 +85,71 @@ const App = () => {
   };
 
   return (
-    <React.Fragment>
-      <CssBaseline />
-      <AppBar position="static">
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-500 to-purple-500 text-gray-900">
+      <Router>
+        <nav className="bg-blue-600 p-4 flex justify-between items-center">
+          <div className="text-white text-lg flex items-center">
+            <FaQuestionCircle className="mr-2" />
             AnonAdvisor
-          </Typography>
-        </Toolbar>
-      </AppBar>
-      <Container>
-        <Box my={4}>
-          <QuestionForm postQuestion={postQuestion} />
-          <QuestionList questions={questions} postAnswer={postAnswer} />
-          <Box my={2}>
-            <Typography variant="h5" component="div">
-              Answers
-            </Typography>
-            <AnswerList answers={answers} />
-          </Box>
-        </Box>
-      </Container>
-    </React.Fragment>
+          </div>
+          <div className="flex items-center">
+            <SignedIn>
+              <UserButton afterSignOutUrl="/" />
+            </SignedIn>
+            <SignedOut>
+              <Link to="/sign-up" className="text-white text-lg flex items-center cursor-pointer">
+                <FaUserPlus className="mr-2" />
+                Sign Up
+              </Link>
+            </SignedOut>
+          </div>
+        </nav>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <div className="container mx-auto p-4 flex-grow">
+                <div className="my-4 flex flex-col items-center">
+                  <SignedOut>
+                    <div className="text-center w-full max-w-2xl">
+                      <h2 className="text-2xl font-semibold text-white">Welcome to AnonAdvisor</h2>
+                      <p className="text-white">Ask a question anonymously or check out recent answers!</p>
+                      <div className="w-full mt-4 p-4 bg-white rounded shadow-md flex justify-between items-end relative">
+                        <QuestionForm postQuestion={postQuestion} />
+                      </div>
+                      <div className="mt-8 w-full">
+                        <h5 className="text-xl font-semibold text-white">Recent Answers</h5>
+                        <div className="flex flex-col-reverse">
+                          <AnswerList answers={answers} />
+                        </div>
+                      </div>
+                    </div>
+                  </SignedOut>
+                  <SignedIn>
+                    <div className="w-full max-w-2xl mt-4 p-4 bg-white rounded shadow-md flex justify-between items-end relative">
+                      <QuestionForm postQuestion={postQuestion} />
+                      <button
+                        className="ml-4 bg-purple-500 text-white py-2 px-4 rounded hover:bg-purple-600"
+                      >
+                        Post
+                      </button>
+                    </div>
+                    <div className="my-8 w-full">
+                      <QuestionList questions={questions} postAnswer={postAnswer} />
+                      <h5 className="text-xl font-semibold text-white mt-4">Answers</h5>
+                      <AnswerList answers={answers} />
+                    </div>
+                  </SignedIn>
+                </div>
+              </div>
+            }
+          />
+        </Routes>
+        <footer className="bg-gray-800 text-white p-4 text-center mt-auto">
+          Made with ❤️ using Vite + Appwrite
+        </footer>
+      </Router>
+    </div>
   );
 };
 
