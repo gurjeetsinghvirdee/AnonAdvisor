@@ -12,7 +12,7 @@ const QuestionForm: React.FC<{ postQuestion: (questionText: string) => void }> =
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col items-center bg-white p-6 rounded shadow-md" style={{ width: '100%', maxWidth: '700px', height: '220px' }}>
+    <form onSubmit={handleSubmit} className="flex flex-col items-center bg-white p-6 rounded shadow-md" style={{ width: '100%', maxWidth: '800px', height: '220px' }}>
       <textarea
         className="w-full p-2 border border-gray-300 rounded mb-4"
         placeholder="Ask anything here..."

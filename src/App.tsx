@@ -1,31 +1,49 @@
 import React, { useEffect, useState } from 'react';
 import { databases, client } from './appwrite';
-import { BrowserRouter as Router, Route, Routes, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, Link } from 'react-router-dom';
 import { SignedIn, SignedOut, UserButton, SignUpButton } from '@clerk/clerk-react';
 import { FaQuestionCircle, FaUserPlus } from 'react-icons/fa';
-import Home from './Home';
-import QuestionsPanel from './QuestionsPanel';
-import QuestionForm from './components/QuestionForm';
-import QuestionList from './components/QuestionList';
-import AnswerList from './components/AnswerList';
+import { MdDarkMode, MdOutlineDarkMode } from 'react-icons/md';
+import Home from '../src/Home';
+import QuestionsPanel from '../src/QuestionsPanel';
+import { lightTheme, darkTheme } from './theme';
 
-interface Questions {
+export interface Questions {
   $id: string;
   questionText: string;
   timestamp: string;
+  userID: string; // Added userID property
 }
 
-interface Answers {
+export interface Answers {
   $id: string;
   questionID: string;
   answerText: string;
   timestamp: string;
+  parentID?: string;
+  userID: string; // Added userID property
 }
 
 const App: React.FC = () => {
   const [questions, setQuestions] = useState<Questions[]>([]);
   const [answers, setAnswers] = useState<Answers[]>([]);
+  const [theme, setTheme] = useState(lightTheme);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setTheme(isDarkMode ? darkTheme : lightTheme);
+  }, []);
+
+  useEffect(() => {
+    const handleThemeChange = (e: MediaQueryListEvent) => {
+      setTheme(e.matches ? darkTheme : lightTheme);
+    };
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', handleThemeChange);
+    return () => {
+      window.matchMedia('(prefers-color-scheme: dark)').removeEventListener('change', handleThemeChange);
+    };
+  }, []);
 
   useEffect(() => {
     getQuestions();
@@ -51,6 +69,7 @@ const App: React.FC = () => {
       $id: doc.$id,
       questionText: doc.questionText,
       timestamp: doc.timestamp,
+      userID: doc.userID // Ensure userID is included
     })));
   };
 
@@ -63,7 +82,9 @@ const App: React.FC = () => {
       $id: doc.$id,
       questionID: doc.questionID,
       answerText: doc.answerText,
-      timestamp: doc.timestamp,
+      timestamp: new Date(doc.timeStamp).toLocaleString(),
+      parentID: doc.parentID || null,
+      userID: doc.userID // Ensure userID is included
     })));
   };
 
@@ -83,15 +104,14 @@ const App: React.FC = () => {
     }
   };
 
-  const postAnswer = async (questionID: string, answerText: string) => {
+  const postAnswer = async (questionID: string, answerText: string): Promise<void> => {
     try {
       const documentID = 'unique()';
-      const answerID = 'unique()';
       await databases.createDocument(
         import.meta.env.VITE_APP_APPWRITE_DATABASE_ID!,
         import.meta.env.VITE_APP_APPWRITE_ANSWERS_COLLECTION_ID!,
         documentID,
-        { answerID, questionID, answerText, timeStamp: new Date().toISOString() }
+        { answerID: documentID, questionID, answerText, timeStamp: new Date().toISOString() }
       );
       getAnswers();
     } catch (error) {
@@ -99,36 +119,104 @@ const App: React.FC = () => {
     }
   };
 
+  const postCommentReply = async (questionID: string, answerText: string, parentID: string): Promise<void> => {
+    try {
+      const documentID = 'unique()';
+      await databases.createDocument(
+        import.meta.env.VITE_APP_APPWRITE_DATABASE_ID!,
+        import.meta.env.VITE_APP_APPWRITE_ANSWERS_COLLECTION_ID!,
+        documentID,
+        { answerID: documentID, questionID, answerText, parentID, timeStamp: new Date().toISOString() }
+      );
+      getAnswers();
+    } catch (error) {
+      console.error('Error creating comment reply:', error);
+    }
+  };
+
+  const deleteResponse = async (documentID: string): Promise<void> => {
+    try {
+      await databases.deleteDocument(
+        import.meta.env.VITE_APP_APPWRITE_DATABASE_ID!,
+        import.meta.env.VITE_APP_APPWRITE_ANSWERS_COLLECTION_ID!,
+        documentID
+      );
+      getAnswers();
+    } catch (error) {
+      console.error('Error deleting response:', error);
+    }
+  };
+
+  const editResponse = async (documentID: string, updatedText: string): Promise<void> => {
+    try {
+      await databases.updateDocument(
+        import.meta.env.VITE_APP_APPWRITE_DATABASE_ID!,
+        import.meta.env.VITE_APP_APPWRITE_ANSWERS_COLLECTION_ID!,
+        documentID,
+        { answerText: updatedText, timeStamp: new Date().toISOString() }
+      );
+      getAnswers();
+    } catch (error) {
+      console.error('Error editing response:', error);
+    }
+  };
+
+  const toggleTheme = () => {
+    setTheme((prevTheme) => (prevTheme === lightTheme ? darkTheme : lightTheme));
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-500 to-purple-500 text-gray-900">
-      <Router>
-        <nav className="bg-blue-600 p-4 flex justify-between items-center">
-          <div className="text-white text-lg flex items-center">
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: theme.background, color: theme.text }}>
+      <nav className="p-4 flex justify-between items-center" style={{ backgroundColor: theme.background, color: theme.text }}>
+        <div className="text-lg flex items-center">
+          <Link to="/" className="flex items-center">
             <FaQuestionCircle className="mr-2" />
             AnonAdvisor
-          </div>
-          <div className="flex items-center">
-            <SignedIn>
-              <UserButton afterSignOutUrl="/" />
-            </SignedIn>
-            <SignedOut>
-              <SignUpButton mode="modal">
-                <button className="text-white text-lg flex items-center cursor-pointer">
-                  <FaUserPlus className="mr-2" />
-                  Sign Up
-                </button>
-              </SignUpButton>
-            </SignedOut>
-          </div>
-        </nav>
-        <Routes>
-          <Route path="/" element={<Home postQuestion={postQuestion} questions={questions} />} />
-          <Route path="/questions" element={<QuestionsPanel questions={questions} postAnswer={postAnswer} />} />
-        </Routes>
-        <footer className="bg-gray-800 text-white p-4 text-center mt-auto">
-          Made with ❤️ using Vite + Appwrite
-        </footer>
-      </Router>
+          </Link>
+        </div>
+        <div className="flex items-center">
+          <SignedIn>
+            <UserButton afterSignOutUrl="/" />
+          </SignedIn>
+          <SignedOut>
+            <SignUpButton mode="modal">
+              <button className="text-lg flex items-center cursor-pointer">
+                <FaUserPlus className="mr-2" />
+                Sign Up
+              </button>
+            </SignUpButton>
+          </SignedOut>
+          <button
+            onClick={toggleTheme}
+            className="ml-4 px-4 py-2 border rounded"
+            style={{
+              backgroundColor: theme === darkTheme ? '#333' : '#ddd',
+              color: theme === darkTheme ? '#FFFF00' : '#000000',
+            }}
+          >
+            {theme === darkTheme ? <MdDarkMode /> : <MdOutlineDarkMode />}
+          </button>
+        </div>
+      </nav>
+      <Routes>
+        <Route path="/" element={<Home postQuestion={postQuestion} questions={questions} />} />
+        <Route
+          path="/questions"
+          element={
+            <QuestionsPanel
+              questions={questions}
+              postAnswer={postAnswer}
+              answers={answers}
+              deleteResponse={deleteResponse}
+              editResponse={editResponse}
+              postCommentReply={postCommentReply}
+            />
+          }
+        />
+      </Routes>
+      <footer className="p-4 text-center mt-auto" style={{ backgroundColor: theme.background, color: theme.text }}>
+        Made with ❤️ using Vite + Appwrite
+      </footer>
     </div>
   );
 };
