@@ -12,7 +12,7 @@ export interface Questions {
   $id: string;
   questionText: string;
   timestamp: string;
-  userID: string; // Added userID property
+  userID: string;
 }
 
 export interface Answers {
@@ -21,7 +21,7 @@ export interface Answers {
   answerText: string;
   timestamp: string;
   parentID?: string;
-  userID: string; // Added userID property
+  userID: string;
 }
 
 const App: React.FC = () => {
@@ -68,8 +68,8 @@ const App: React.FC = () => {
     setQuestions(response.documents.map((doc) => ({
       $id: doc.$id,
       questionText: doc.questionText,
-      timestamp: doc.timestamp,
-      userID: doc.userID // Ensure userID is included
+      timestamp: doc.timeStamp,
+      userID: doc.userID
     })));
   };
 
@@ -84,7 +84,7 @@ const App: React.FC = () => {
       answerText: doc.answerText,
       timestamp: new Date(doc.timeStamp).toLocaleString(),
       parentID: doc.parentID || null,
-      userID: doc.userID // Ensure userID is included
+      userID: doc.userID
     })));
   };
 
@@ -111,7 +111,7 @@ const App: React.FC = () => {
         import.meta.env.VITE_APP_APPWRITE_DATABASE_ID!,
         import.meta.env.VITE_APP_APPWRITE_ANSWERS_COLLECTION_ID!,
         documentID,
-        { answerID: documentID, questionID, answerText, timeStamp: new Date().toISOString() }
+        { questionID, answerText, timeStamp: new Date().toISOString() }
       );
       getAnswers();
     } catch (error) {
@@ -126,7 +126,13 @@ const App: React.FC = () => {
         import.meta.env.VITE_APP_APPWRITE_DATABASE_ID!,
         import.meta.env.VITE_APP_APPWRITE_ANSWERS_COLLECTION_ID!,
         documentID,
-        { answerID: documentID, questionID, answerText, parentID, timeStamp: new Date().toISOString() }
+        {
+          answerID: documentID, // Include answerID
+          questionID,
+          answerText,
+          parentID,
+          timeStamp: new Date().toISOString()
+        }
       );
       getAnswers();
     } catch (error) {

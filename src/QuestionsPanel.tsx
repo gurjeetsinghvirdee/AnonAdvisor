@@ -15,9 +15,10 @@ const QuestionsPanel: React.FC<Props> = ({ questions, postAnswer, answers, editR
   const { user } = useUser();
   const [replyText, setReplyText] = useState('');
   const [activeReply, setActiveReply] = useState<string | null>(null);
+  const [localAnswers, setLocalAnswers] = useState<Answers[]>(answers);
 
   useEffect(() => {
-    console.log('Answers:', answers);
+    setLocalAnswers(answers);
   }, [answers]);
 
   const handleEdit = async (id: string, newText: string) => {
@@ -28,10 +29,11 @@ const QuestionsPanel: React.FC<Props> = ({ questions, postAnswer, answers, editR
     await postCommentReply(questionID, answerText, parentID);
     setReplyText('');
     setActiveReply(null);
+    setLocalAnswers(prev => [...prev, { $id: String(new Date().getTime()), questionID, answerText, parentID, userID: user?.id ?? '', timestamp: new Date().toISOString() }]);
   };
 
   const renderReplies = (parentID: string) => {
-    return answers.filter(a => a.parentID === parentID && a.answerText !== null).map(reply => (
+    return localAnswers.filter(a => a.parentID === parentID && a.answerText !== null).map(reply => (
       <div key={reply.$id} className="ml-5 mt-3 border-l-2 border-gray-200 pl-3">
         <p className="mb-1 text-gray-600">{reply.answerText}</p>
         <SignedIn>
@@ -78,7 +80,7 @@ const QuestionsPanel: React.FC<Props> = ({ questions, postAnswer, answers, editR
             </SignedIn>
           </div>
           <div>
-            {answers.filter(a => a.questionID === question.$id && !a.parentID && a.answerText !== null).map(answer => (
+            {localAnswers.filter(a => a.questionID === question.$id && !a.parentID && a.answerText !== null).map(answer => (
               <div key={answer.$id} className="ml-5 mb-3">
                 <p className="mb-1 text-gray-700">{answer.answerText}</p>
                 <SignedIn>
@@ -132,6 +134,6 @@ const QuestionsPanel: React.FC<Props> = ({ questions, postAnswer, answers, editR
       ))}
     </div>
   );
-}
+};
 
 export default QuestionsPanel;
