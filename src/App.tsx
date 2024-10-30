@@ -5,24 +5,9 @@ import { SignedIn, SignedOut, UserButton, SignUpButton } from '@clerk/clerk-reac
 import { FaQuestionCircle, FaUserPlus } from 'react-icons/fa';
 import { MdDarkMode, MdOutlineDarkMode } from 'react-icons/md';
 import Home from '../src/Home';
-import QuestionsPanel from '../src/QuestionsPanel';
+import QuestionsPanel from './QuestionsPanel';
 import { lightTheme, darkTheme } from './theme';
-
-export interface Questions {
-  $id: string;
-  questionText: string;
-  timestamp: string;
-  userID: string;
-}
-
-export interface Answers {
-  $id: string;
-  questionID: string;
-  answerText: string;
-  timestamp: string;
-  parentID?: string;
-  userID: string;
-}
+import { Questions, Answers } from '../src/types';
 
 const App: React.FC = () => {
   const [questions, setQuestions] = useState<Questions[]>([]);
@@ -68,7 +53,7 @@ const App: React.FC = () => {
     setQuestions(response.documents.map((doc) => ({
       $id: doc.$id,
       questionText: doc.questionText,
-      timestamp: doc.timeStamp,
+      timestamp: doc.timestamp,
       userID: doc.userID
     })));
   };
@@ -82,7 +67,7 @@ const App: React.FC = () => {
       $id: doc.$id,
       questionID: doc.questionID,
       answerText: doc.answerText,
-      timestamp: new Date(doc.timeStamp).toLocaleString(),
+      timestamp: new Date(doc.timestamp).toLocaleString(),
       parentID: doc.parentID || null,
       userID: doc.userID
     })));
@@ -95,7 +80,7 @@ const App: React.FC = () => {
         import.meta.env.VITE_APP_APPWRITE_DATABASE_ID!,
         import.meta.env.VITE_APP_APPWRITE_QUESTIONS_COLLECTION_ID!,
         documentID,
-        { questionText, timeStamp: new Date().toISOString() }
+        { questionText, timestamp: new Date().toISOString() }
       );
       getQuestions();
       navigate('/questions');
@@ -111,7 +96,7 @@ const App: React.FC = () => {
         import.meta.env.VITE_APP_APPWRITE_DATABASE_ID!,
         import.meta.env.VITE_APP_APPWRITE_ANSWERS_COLLECTION_ID!,
         documentID,
-        { questionID, answerText, timeStamp: new Date().toISOString() }
+        { questionID, answerText, timestamp: new Date().toISOString() }
       );
       getAnswers();
     } catch (error) {
@@ -126,13 +111,7 @@ const App: React.FC = () => {
         import.meta.env.VITE_APP_APPWRITE_DATABASE_ID!,
         import.meta.env.VITE_APP_APPWRITE_ANSWERS_COLLECTION_ID!,
         documentID,
-        {
-          answerID: documentID, // Include answerID
-          questionID,
-          answerText,
-          parentID,
-          timeStamp: new Date().toISOString()
-        }
+        { questionID, answerText, parentID, timestamp: new Date().toISOString() }
       );
       getAnswers();
     } catch (error) {
@@ -146,7 +125,7 @@ const App: React.FC = () => {
         import.meta.env.VITE_APP_APPWRITE_DATABASE_ID!,
         import.meta.env.VITE_APP_APPWRITE_ANSWERS_COLLECTION_ID!,
         documentID,
-        { answerText: updatedText, timeStamp: new Date().toISOString() }
+        { answerText: updatedText, timestamp: new Date().toISOString() }
       );
       getAnswers();
     } catch (error) {
@@ -202,6 +181,7 @@ const App: React.FC = () => {
               answers={answers}
               editResponse={editResponse}
               postCommentReply={postCommentReply}
+              getAnswers={getAnswers} // Pass getAnswers function here
             />
           }
         />

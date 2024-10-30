@@ -2,6 +2,7 @@ export interface Questions {
     $id: string;
     questionText: string;
     timestamp: string;
+    userID: string;
 }
 
 export interface Answers {
@@ -9,4 +10,6 @@ export interface Answers {
     questionID: string;
     answerText: string;
     timestamp: string;
+    parentID?: string;
+    userID: string;
 }

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { SignedIn, useUser } from '@clerk/clerk-react';
-import { FaReply, FaEdit } from 'react-icons/fa';
-import { Questions, Answers } from './App';
+import { FaEdit, FaReply } from 'react-icons/fa';
+import { Questions, Answers } from './types';
+import AnswersPanel from './AnswersPanel';
 
 interface Props {
   questions: Questions[];
@@ -9,126 +10,44 @@ interface Props {
   answers: Answers[];
   editResponse: (documentID: string, updatedText: string) => Promise<void>;
   postCommentReply: (questionID: string, answerText: string, parentID: string) => Promise<void>;
+  getAnswers: () => Promise<void>; // Adding getAnswers function to fetch latest answers
 }
 
-const QuestionsPanel: React.FC<Props> = ({ questions, postAnswer, answers, editResponse, postCommentReply }) => {
+const QuestionsPanel: React.FC<Props> = ({ questions, postAnswer, answers, editResponse, postCommentReply, getAnswers }) => {
   const { user } = useUser();
   const [replyText, setReplyText] = useState('');
-  const [activeReply, setActiveReply] = useState<string | null>(null);
-  const [localAnswers, setLocalAnswers] = useState<Answers[]>(answers);
 
-  useEffect(() => {
-    setLocalAnswers(answers);
-  }, [answers]);
-
-  const handleEdit = async (id: string, newText: string) => {
-    await editResponse(id, newText);
+  const handleAnswerPost = async (questionID: string, answerText: string) => {
+    await postAnswer(questionID, answerText);
+    await getAnswers(); // Fetch latest answers after posting
   };
 
-  const handleReply = async (questionID: string, answerText: string, parentID: string) => {
+  const handleReplyPost = async (questionID: string, answerText: string, parentID: string) => {
     await postCommentReply(questionID, answerText, parentID);
-    setReplyText('');
-    setActiveReply(null);
-    setLocalAnswers(prev => [...prev, { $id: String(new Date().getTime()), questionID, answerText, parentID, userID: user?.id ?? '', timestamp: new Date().toISOString() }]);
-  };
-
-  const renderReplies = (parentID: string) => {
-    return localAnswers.filter(a => a.parentID === parentID && a.answerText !== null).map(reply => (
-      <div key={reply.$id} className="ml-5 mt-3 border-l-2 border-gray-200 pl-3">
-        <p className="mb-1 text-gray-600">{reply.answerText}</p>
-        <SignedIn>
-          {user?.id === reply.userID && (
-            <div className="flex space-x-3 mb-2">
-              <FaEdit onClick={() => handleEdit(reply.$id, "New reply text here")} className="text-blue-500 cursor-pointer" title="Edit" />
-            </div>
-          )}
-          <FaReply onClick={() => setActiveReply(reply.$id)} className="text-green-500 cursor-pointer" title="Reply" />
-          {activeReply === reply.$id && (
-            <div className="mt-2">
-              <textarea
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                className="border border-gray-300 rounded p-2 w-full"
-                placeholder="Type your reply here..."
-              />
-              <button
-                onClick={() => handleReply(reply.questionID, replyText, reply.$id)}
-                className="mt-1 bg-blue-500 text-white rounded px-3 py-1"
-              >
-                Submit
-              </button>
-            </div>
-          )}
-        </SignedIn>
-        <div>{renderReplies(reply.$id)}</div>
-      </div>
-    ));
+    await getAnswers(); // Fetch latest answers after posting a reply
   };
 
   return (
-    <div className="space-y-4 container mx-auto p-4">
-      {questions.filter(q => q.questionText !== null).map(question => (
-        <div key={question.$id} className="border border-gray-300 p-4 rounded-lg bg-white shadow-md">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="text-lg font-bold">{question.questionText}</h3>
-            <SignedIn>
-              {user?.id === question.userID && (
-                <div className="flex space-x-3">
-                  <FaEdit onClick={() => handleEdit(question.$id, "New text here")} className="text-blue-500 cursor-pointer" title="Edit" />
-                </div>
-              )}
-            </SignedIn>
-          </div>
-          <div>
-            {localAnswers.filter(a => a.questionID === question.$id && !a.parentID && a.answerText !== null).map(answer => (
-              <div key={answer.$id} className="ml-5 mb-3">
-                <p className="mb-1 text-gray-700">{answer.answerText}</p>
-                <SignedIn>
-                  {user?.id === answer.userID && (
-                    <div className="flex space-x-3 mb-2">
-                      <FaEdit onClick={() => handleEdit(answer.$id, "New text here")} className="text-blue-500 cursor-pointer" title="Edit" />
-                    </div>
-                  )}
-                  <FaReply onClick={() => setActiveReply(answer.$id)} className="text-green-500 cursor-pointer" title="Reply" />
-                  {activeReply === answer.$id && (
-                    <div className="mt-2">
-                      <textarea
-                        value={replyText}
-                        onChange={(e) => setReplyText(e.target.value)}
-                        className="border border-gray-300 rounded p-2 w-full"
-                        placeholder="Type your reply here..."
-                      />
-                      <button
-                        onClick={() => handleReply(answer.questionID, replyText, answer.$id)}
-                        className="mt-1 bg-blue-500 text-white rounded px-3 py-1"
-                      >
-                        Submit
-                      </button>
-                    </div>
-                  )}
-                </SignedIn>
-                <div className="pl-5">{renderReplies(answer.$id)}</div>
-              </div>
-            ))}
-          </div>
+    <div className="questions-panel">
+      {questions.map((question) => (
+        <div key={question.$id} className="question">
+          <h2>{question.questionText}</h2>
+          <p>Asked by: {question.userID}</p>
+          <AnswersPanel
+            answers={answers.filter((answer) => answer.questionID === question.$id)}
+            editResponse={editResponse}
+            onReplyPost={handleReplyPost}
+            user={user}
+          />
           <SignedIn>
-            <FaReply onClick={() => setActiveReply(question.$id)} className="text-green-500 cursor-pointer" title="Reply" />
-            {activeReply === question.$id && (
-              <div className="mt-2">
-                <textarea
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  className="border border-gray-300 rounded p-2 w-full"
-                  placeholder="Type your reply here..."
-                />
-                <button
-                  onClick={() => handleReply(question.$id, replyText, question.$id)}
-                  className="mt-1 bg-blue-500 text-white rounded px-3 py-1"
-                >
-                  Submit
-                </button>
-              </div>
-            )}
+            <div className="answer-form">
+              <textarea
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                placeholder="Write your answer..."
+              />
+              <button onClick={() => handleAnswerPost(question.$id, replyText)}>Submit Answer</button>
+            </div>
           </SignedIn>
         </div>
       ))}
@@ -137,3 +56,4 @@ const QuestionsPanel: React.FC<Props> = ({ questions, postAnswer, answers, editR
 };
 
 export default QuestionsPanel;
+ 
