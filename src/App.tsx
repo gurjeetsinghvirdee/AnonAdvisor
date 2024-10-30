@@ -134,19 +134,6 @@ const App: React.FC = () => {
     }
   };
 
-  const deleteResponse = async (documentID: string): Promise<void> => {
-    try {
-      await databases.deleteDocument(
-        import.meta.env.VITE_APP_APPWRITE_DATABASE_ID!,
-        import.meta.env.VITE_APP_APPWRITE_ANSWERS_COLLECTION_ID!,
-        documentID
-      );
-      getAnswers();
-    } catch (error) {
-      console.error('Error deleting response:', error);
-    }
-  };
-
   const editResponse = async (documentID: string, updatedText: string): Promise<void> => {
     try {
       await databases.updateDocument(
@@ -207,7 +194,6 @@ const App: React.FC = () => {
               questions={questions}
               postAnswer={postAnswer}
               answers={answers}
-              deleteResponse={deleteResponse}
               editResponse={editResponse}
               postCommentReply={postCommentReply}
             />

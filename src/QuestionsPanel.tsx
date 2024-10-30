@@ -7,24 +7,19 @@ interface Props {
   questions: Questions[];
   postAnswer: (questionID: string, answerText: string) => Promise<void>;
   answers: Answers[];
-  softDeleteResponse: (documentID: string, collectionID: string) => Promise<void>;
   editResponse: (documentID: string, updatedText: string) => Promise<void>;
   postCommentReply: (questionID: string, answerText: string, parentID: string) => Promise<void>;
 }
 
-const QuestionsPanel: React.FC<Props> = ({ questions, postAnswer, answers, softDeleteResponse, editResponse, postCommentReply }) => {
+const QuestionsPanel: React.FC<Props> = ({ questions, postAnswer, answers, editResponse, postCommentReply }) => {
   const { user } = useUser();
-
-  const handleDelete = async (id: string, collectionID: string) => {
-    await softDeleteResponse(id, collectionID);
-  };
 
   const handleEdit = async (id: string, newText: string) => {
     await editResponse(id, newText);
   };
 
   const handleReply = async (questionID: string, answerText: string, parentID: string) => {
-    await postCommentReply(questionID, answerText, parentID, user!.id);
+    await postCommentReply(questionID, answerText, parentID);
   };
 
   return (
@@ -36,7 +31,6 @@ const QuestionsPanel: React.FC<Props> = ({ questions, postAnswer, answers, softD
             <SignedIn>
               {user?.id === question.userID && (
                 <div className="flex space-x-3">
-                  <FaTrashAlt onClick={() => handleDelete(question.$id, import.meta.env.VITE_APP_APPWRITE_QUESTIONS_COLLECTION_ID!)} className="text-red-500 cursor-pointer" title="Delete" />
                   <FaEdit onClick={() => handleEdit(question.$id, "New text here")} className="text-blue-500 cursor-pointer" title="Edit" />
                 </div>
               )}
@@ -50,7 +44,6 @@ const QuestionsPanel: React.FC<Props> = ({ questions, postAnswer, answers, softD
                 <SignedIn>
                   {user?.id === answer.userID && (
                     <div className="flex space-x-3">
-                      <FaTrashAlt onClick={() => handleDelete(answer.$id, import.meta.env.VITE_APP_APPWRITE_ANSWERS_COLLECTION_ID!)} className="text-red-500 cursor-pointer" title="Delete" />
                       <FaEdit onClick={() => handleEdit(answer.$id, "New text here")} className="text-blue-500 cursor-pointer" title="Edit" />
                     </div>
                   )}
@@ -63,7 +56,6 @@ const QuestionsPanel: React.FC<Props> = ({ questions, postAnswer, answers, softD
                       <SignedIn>
                         {user?.id === reply.userID && (
                           <div className="flex space-x-3">
-                            <FaTrashAlt onClick={() => handleDelete(reply.$id, import.meta.env.VITE_APP_APPWRITE_ANSWERS_COLLECTION_ID!)} className="text-red-500 cursor-pointer" title="Delete" />
                             <FaEdit onClick={() => handleEdit(reply.$id, "New reply text here")} className="text-blue-500 cursor-pointer" title="Edit" />
                           </div>
                         )}
